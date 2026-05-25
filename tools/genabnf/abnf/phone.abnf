@@ -1,8 +1,0 @@
-; ITU-T E.164 -- basic international form.
-;
-; A leading "+" followed by 4 to 15 ASCII digits, no separators.
-; Full E.164 also constrains the country-code prefix; that
-; requires a libphonenumber-sized data set and is deliberately
-; out of scope for v0.1. DIGIT is the RFC 5234 core rule.
-
-phone = "+" 4*15DIGIT

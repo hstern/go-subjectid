@@ -3,6 +3,8 @@
 
 package subjectid
 
+import "regexp"
+
 // PhoneNumberID identifies a subject by an ITU-T E.164 phone
 // number, as defined in RFC 9493 §3.2.5.
 //
@@ -22,23 +24,35 @@ type PhoneNumberID struct {
 // Format returns "phone_number". See [SubjectIdentifier.Format].
 func (PhoneNumberID) Format() string { return "phone_number" }
 
+// phoneE164BasicRe matches the basic E.164 international form:
+// a leading "+", then 4 to 15 ASCII digits, no separators.
+// Encoded as a literal regex of the simplified spec grammar
+//
+//	phone = "+" 4*15DIGIT
+//
+// Full country-prefix validity (assigned country codes,
+// per-country length rules) is intentionally not enforced here;
+// that lands in a follow-up PR backed by nyaruka/phonenumbers
+// (Google libphonenumber port).
+var phoneE164BasicRe = regexp.MustCompile(`^\+\d{4,15}$`)
+
 // Validate checks the PhoneNumber member against the basic E.164
-// shell: a leading "+" followed by 4 to 15 ASCII digits. The
-// match uses [phoneE164Re], a regex generated from
-// tools/genabnf/abnf/phone.abnf (`phone = "+" 4*15DIGIT`) so the
-// validator tracks the ABNF rather than a hand-paraphrase.
+// shell: a leading "+" followed by 4 to 15 ASCII digits.
 //
-// What this deliberately does NOT check:
+// What this deliberately does NOT check (pending the follow-up
+// nyaruka/phonenumbers integration):
 //
-//   - Country-prefix validity. Full E.164 validation would
-//     require a libphonenumber-sized country-code database; v0.1
-//     stays in the standard library. Consumers that need full
-//     conformance can re-validate after [Parse].
-//   - Number-portability or assignment status. Beyond E.164's
-//     scope.
-//   - Separator or formatting characters. E.164 prohibits any
-//     punctuation; the library rejects spaces, dashes, parens,
-//     and dots in the digit run.
+//   - Country-prefix validity (which 1- to 3-digit prefixes are
+//     assigned per the ITU-T E.164 country-code numbering plan).
+//   - Per-country subscriber-number length rules.
+//   - Formatting / canonicalization.
+//
+// What this does enforce:
+//
+//   - Non-empty.
+//   - Leading "+".
+//   - ASCII digits only — no spaces, dashes, parens, or dots.
+//   - Length 4 to 15 digits (the E.164 lower and upper bounds).
 func (p PhoneNumberID) Validate() error {
 	if p.PhoneNumber == "" {
 		return &ValidationError{
@@ -47,7 +61,7 @@ func (p PhoneNumberID) Validate() error {
 			Reason: `"phone_number" member must be a non-empty E.164 number`,
 		}
 	}
-	if !phoneE164Re.MatchString(p.PhoneNumber) {
+	if !phoneE164BasicRe.MatchString(p.PhoneNumber) {
 		return &ValidationError{
 			Rule:   "format:phone_number",
 			Format: "phone_number",
