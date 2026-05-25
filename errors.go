@@ -125,11 +125,11 @@ var (
 	ErrJSON = fmt.Errorf("%w: input is not a Subject Identifier JSON object", Err)
 
 	// ErrNestedAliases reports that an aliases identifier contains
-	// another aliases identifier, which RFC 9493 §3.2.7 forbids.
+	// another aliases identifier, which RFC 9493 §3.2.8 forbids.
 	ErrNestedAliases = fmt.Errorf("%w: aliases identifier must not contain a nested aliases identifier", Err)
 
 	// ErrAliasesEmpty reports that an aliases identifier's
-	// "identifiers" array was nil or zero-length. RFC 9493 §3.2.7
+	// "identifiers" array was nil or zero-length. RFC 9493 §3.2.8
 	// requires at least one element.
 	ErrAliasesEmpty = fmt.Errorf("%w: aliases identifier must contain at least one element", Err)
 
@@ -153,9 +153,8 @@ var (
 	ErrFormatDID         = FormatErr("invalid DID URL")
 	ErrFormatURI         = FormatErr("invalid absolute URI")
 
-	// ErrFormatReserved is returned by RegisterFormat (defined in
-	// a later commit) when a caller attempts to register a
-	// constructor for a format name that the library has already
-	// populated as a built-in.
+	// ErrFormatReserved is returned by [RegisterFormat] when a
+	// caller attempts to register a constructor for a format name
+	// that the library has already populated as a built-in.
 	ErrFormatReserved = FormatErr("format name is reserved for a built-in")
 )
