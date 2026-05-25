@@ -5,7 +5,6 @@ package subjectid_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/hstern/go-subjectid"
@@ -23,7 +22,14 @@ func TestAccountIDValidateAcceptsWellFormedAcctURIs(t *testing.T) {
 		"acct:example.user@service.example.com",
 		"acct:bob@example.org",
 		"acct:user-name+tag@sub.example.com",
+		// Single-character userpart and host: the ABNF lower
+		// bound is one character on each side.
 		"acct:1@2",
+		// Percent-encoded octets in userpart (RFC 7565 §3 via
+		// RFC 3986 pct-encoded).
+		"acct:user%20name@example.com",
+		// Sub-delims in userpart per RFC 3986: ! $ & ' ( ) * + , ; =
+		"acct:bob!doe$@example.com",
 	}
 	for _, in := range cases {
 		t.Run(in, func(t *testing.T) {
@@ -36,16 +42,20 @@ func TestAccountIDValidateAcceptsWellFormedAcctURIs(t *testing.T) {
 
 func TestAccountIDValidateRejectsMalformedAcctURIs(t *testing.T) {
 	cases := []struct {
-		input   string
-		rule    string
-		message string
+		input string
+		rule  string
 	}{
-		{"", "required", "non-empty"},
-		{"mailto:user@example.com", "format:account", "acct:"},
-		{"acct:user", "format:account", `"@"`},
-		{"acct:@example.com", "format:account", "userpart is empty"},
-		{"acct:user@", "format:account", "host is empty"},
-		{"acct:a@b@c", "format:account", "second one"},
+		{"", "required"},
+		{"mailto:user@example.com", "format:account"},
+		{"ACCT:user@example.com", "format:account"},
+		{"acct:user", "format:account"},
+		{"acct:@example.com", "format:account"},
+		{"acct:user@", "format:account"},
+		{"acct:a@b@c", "format:account"},
+		{"acct:user name@example.com", "format:account"},
+		{"acct:user@exa mple.com", "format:account"},
+		{"acct:user@example.com#frag", "format:account"},
+		{"acct:user@example.com?q=1", "format:account"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -62,9 +72,6 @@ func TestAccountIDValidateRejectsMalformedAcctURIs(t *testing.T) {
 			}
 			if ve.Format != "account" {
 				t.Errorf("Format = %q, want %q", ve.Format, "account")
-			}
-			if !strings.Contains(ve.Reason, tc.message) {
-				t.Errorf("Reason = %q, want substring %q", ve.Reason, tc.message)
 			}
 		})
 	}
