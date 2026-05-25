@@ -1,0 +1,26 @@
+; RFC 5322 §3.4.1 addr-spec, narrowed to the bare wire shape RFC 9493
+; §3.2.2 carries: no FWS, no comments, no quoted-string local-part
+; (the v0.1 policy locked in by email_test.go rejects all three —
+; they are rare in modern mail and almost always a sign of malformed
+; input).
+
+addr-spec      = local-part "@" domain
+
+; RFC 532 §3.4.1 local-part = dot-atom-text / quoted-string / obs-local-part
+; — v0.1 keeps only dot-atom-text.
+local-part     = dot-atom-text
+
+; RFC 5322 §3.4.1 domain = dot-atom-text / domain-literal / obs-domain
+; — domain-literal admits IPv4 / IPv6 / etc. as opaque dtext.
+domain         = dot-atom-text / domain-literal
+
+; RFC 5322 §3.2.3
+dot-atom-text  = 1*atext *( "." 1*atext )
+atext          = ALPHA / DIGIT
+               / "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+"
+               / "-" / "/" / "=" / "?" / "^" / "_" / "`"
+               / "{" / "|" / "}" / "~"
+
+; RFC 5322 §3.4.1
+domain-literal = "[" *dtext "]"
+dtext          = %x21-5A / %x5E-7E    ; printable ASCII minus "[" "\" "]"

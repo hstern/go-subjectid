@@ -74,6 +74,14 @@ linters:
       - path: _test\.go
         linters:
           - errcheck
+      # govet's fieldalignment pass wants test-table structs reordered
+      # for tighter packing. These structs live for microseconds inside
+      # a single test function — the memory layout doesn't matter, and
+      # the conventional "name first" ordering is the readable form.
+      - path: _test\.go
+        text: 'fieldalignment'
+        linters:
+          - govet
 
 formatters:
   enable:

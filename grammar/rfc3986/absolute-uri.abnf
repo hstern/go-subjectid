@@ -1,0 +1,74 @@
+; RFC 3986 §4.3 absolute-URI — a URI with scheme + hier-part and
+; optional query, but NO fragment.
+;
+;   absolute-URI  = scheme ":" hier-part [ "?" query ]
+;
+; This file flattens RFC 3986 §3 hier-part with the host productions
+; from §3.2.2 (including the RFC 6874 IPv6 zone-id extension), the
+; pct-encoded and unreserved/sub-delims character sets from §2.2–2.3,
+; and a case-insensitive hex digit to work around pap's strict
+; uppercase-only HEXDIG.
+
+absolute-URI   = scheme ":" hier-part [ "?" query ]
+
+; RFC 3986 §3.1 scheme
+scheme         = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+
+; RFC 3986 §3 hier-part
+hier-part      = "//" authority path-abempty
+               / path-absolute
+               / path-rootless
+
+; RFC 3986 §3.2 authority
+authority      = [ userinfo "@" ] host [ ":" port ]
+userinfo       = *( unreserved / pct-encoded / sub-delims / ":" )
+port           = *DIGIT
+
+; RFC 3986 §3.2.2 host with RFC 6874 zone-id extension
+host           = IP-literal / IPv4address / reg-name
+IP-literal     = "[" ( IPv6addrz / IPv6address / IPvFuture ) "]"
+IPv6addrz      = IPv6address "%25" ZoneID
+ZoneID         = 1*( unreserved / pct-encoded )
+IPvFuture      = ( "v" / "V" ) 1*hexdig-ci "." 1*( unreserved / sub-delims / ":" )
+reg-name       = *( unreserved / pct-encoded / sub-delims )
+
+; RFC 3986 §3.2.2 IPv4 / IPv6
+IPv4address    = dec-octet "." dec-octet "." dec-octet "." dec-octet
+dec-octet      = "25" %x30-35        ; 250-255
+               / "2" %x30-34 DIGIT   ; 200-249
+               / "1" 2DIGIT          ; 100-199
+               / %x31-39 DIGIT       ; 10-99
+               / DIGIT               ; 0-9
+IPv6address    =                            6( h16 ":" ) ls32
+               /                       "::" 5( h16 ":" ) ls32
+               / [               h16 ] "::" 4( h16 ":" ) ls32
+               / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+               / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
+               / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
+               / [ *4( h16 ":" ) h16 ] "::"              ls32
+               / [ *5( h16 ":" ) h16 ] "::"              h16
+               / [ *6( h16 ":" ) h16 ] "::"
+h16            = 1*4hexdig-ci
+ls32           = ( h16 ":" h16 ) / IPv4address
+
+; RFC 3986 §3.3 path
+path-abempty   = *( "/" segment )
+path-absolute  = "/" [ segment-nz *( "/" segment ) ]
+path-rootless  = segment-nz *( "/" segment )
+segment        = *pchar
+segment-nz     = 1*pchar
+pchar          = unreserved / pct-encoded / sub-delims / ":" / "@"
+
+; RFC 3986 §3.4 query
+query          = *( pchar / "/" / "?" )
+
+; RFC 3986 §2.2–2.3 character sets
+unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
+pct-encoded    = "%" hexdig-ci hexdig-ci
+sub-delims     = "!" / "$" / "&" / "'" / "(" / ")"
+               / "*" / "+" / "," / ";" / "="
+
+; Case-insensitive hex digit (pap's built-in HEXDIG is uppercase-only).
+hexdig-ci      = DIGIT
+               / "A" / "B" / "C" / "D" / "E" / "F"
+               / "a" / "b" / "c" / "d" / "e" / "f"

@@ -58,3 +58,33 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.1
+
+  pap:
+    name: pap (grammar regen drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: false
+      # `go install github.com/pandatix/go-abnf/cmd/pap@latest` does
+      # not work — cmd/pap's go.mod has a local `replace` directive.
+      # Check the upstream tree out into a sibling path and build pap
+      # from source.
+      - name: checkout pap upstream
+        uses: actions/checkout@v5
+        with:
+          repository: pandatix/go-abnf
+          path: .pap-src
+      - name: build pap
+        run: go build -C .pap-src/cmd/pap -o "$(go env GOPATH)/bin/pap"
+      - name: regenerate .rex files
+        run: make -B generate
+      - name: check for regen drift
+        run: |
+          if ! git diff --exit-code -- '*.rex'; then
+            echo '::error::Generated .rex files are stale.'
+            echo '::error::Run `make generate` locally and commit the result.'
+            exit 1
+          fi

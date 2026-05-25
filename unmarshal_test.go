@@ -222,7 +222,7 @@ func TestParseUnknownFormatRawIsACopy(t *testing.T) {
 	}
 }
 
-func TestParseMissingFormatMemberIsValidationError(t *testing.T) {
+func TestParseMissingFormatMemberIsErrRequired(t *testing.T) {
 	cases := []string{
 		`{}`,
 		`{"email":"x@example.com"}`,
@@ -232,30 +232,22 @@ func TestParseMissingFormatMemberIsValidationError(t *testing.T) {
 		t.Run(raw, func(t *testing.T) {
 			_, err := subjectid.Parse(json.RawMessage(raw))
 			if err == nil {
-				t.Fatal("Parse returned nil error; want *ValidationError")
+				t.Fatal("Parse returned nil error; want non-nil error")
 			}
-			var ve *subjectid.ValidationError
-			if !errors.As(err, &ve) {
-				t.Fatalf("err type = %T, want *ValidationError", err)
-			}
-			if ve.Rule != "required" {
-				t.Errorf("Rule = %q, want %q", ve.Rule, "required")
+			if !errors.Is(err, subjectid.ErrRequired{}) {
+				t.Errorf("errors.Is(err, ErrRequired) = false, want true (err = %v)", err)
 			}
 		})
 	}
 }
 
-func TestParseMalformedJSONIsValidationError(t *testing.T) {
+func TestParseMalformedJSONIsErrJSON(t *testing.T) {
 	_, err := subjectid.Parse(json.RawMessage(`{not-json`))
 	if err == nil {
 		t.Fatal("Parse returned nil error")
 	}
-	var ve *subjectid.ValidationError
-	if !errors.As(err, &ve) {
-		t.Fatalf("err type = %T, want *ValidationError", err)
-	}
-	if ve.Rule != "json" {
-		t.Errorf("Rule = %q, want %q", ve.Rule, "json")
+	if !errors.Is(err, subjectid.ErrJSON) {
+		t.Errorf("errors.Is(err, ErrJSON) = false, want true (err = %v)", err)
 	}
 }
 

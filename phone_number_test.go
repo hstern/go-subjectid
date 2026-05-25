@@ -17,13 +17,29 @@ func TestPhoneNumberIDFormatIsPhoneNumber(t *testing.T) {
 	}
 }
 
+// TestPhoneNumberIDValidateAcceptsBasicE164 locks in the
+// ITU-T E.164 international form: a leading "+", then ASCII
+// digits with no separators, with a real country prefix and a
+// libphonenumber-accepted national subscriber number. The v0.1
+// contract delegates country-prefix and length-per-country rules
+// to libphonenumber.
 func TestPhoneNumberIDValidateAcceptsBasicE164(t *testing.T) {
 	cases := []string{
-		"+12065550100",     // RFC 9493 §3.2.5 example
-		"+1234",            // shortest legal: exactly 4 digits
-		"+123456789012345", // longest legal: exactly 15 digits
-		"+447911123456",    // UK mobile-shaped
-		"+33123456789",     // FR landline-shaped
+		// RFC 9493 §3.2.5 illustrative example.
+		"+12065550100",
+
+		// Length boundaries libphonenumber accepts: the shortest
+		// valid international number is 7 digits (e.g. Austria),
+		// and the E.164 ceiling is 15 digits.
+		"+4312",            // shortest libphonenumber-valid
+		"+431234567890123", // E.164 maximum of 15 digits
+
+		// Country-shaped examples (not validating prefixes here).
+		"+447911123456",  // UK mobile-shaped
+		"+33123456789",   // FR landline-shaped
+		"+819012345678",  // JP mobile-shaped
+		"+5511987654321", // BR mobile-shaped
+		"+861012345678",  // CN-shaped
 	}
 	for _, in := range cases {
 		t.Run(in, func(t *testing.T) {
@@ -34,39 +50,62 @@ func TestPhoneNumberIDValidateAcceptsBasicE164(t *testing.T) {
 	}
 }
 
+// TestPhoneNumberIDValidateRejectsMalformedNumbers locks in the
+// failures. Separators, ASCII-digit violations, and length
+// boundaries are exercised explicitly.
 func TestPhoneNumberIDValidateRejectsMalformedNumbers(t *testing.T) {
 	cases := []struct {
 		input string
-		rule  string
+		want  error
 	}{
-		{"", "required"},
-		{"12065550100", "format:phone_number"},       // missing +
-		{"+", "format:phone_number"},                 // no digits
-		{"+123", "format:phone_number"},              // 3 digits (below 4)
-		{"+1234567890123456", "format:phone_number"}, // 16 digits (above 15)
-		{"+1 206 555 0100", "format:phone_number"},   // spaces
-		{"+1-206-555-0100", "format:phone_number"},   // hyphens
-		{"+1(206)5550100", "format:phone_number"},    // parens
-		{"+12.06.555.0100", "format:phone_number"},   // dots
-		{"++12065550100", "format:phone_number"},     // double +
-		{"+abc1234", "format:phone_number"},          // non-digit
-		{"+1206555X100", "format:phone_number"},      // non-digit in middle
+		// RFC 9493 §3 — required members must be non-empty.
+		{"", subjectid.ErrRequired{}},
+
+		// Missing leading "+".
+		{"1234", subjectid.ErrFormatPhoneNumber},
+		{"12065550100", subjectid.ErrFormatPhoneNumber},
+		{"206 555 0100", subjectid.ErrFormatPhoneNumber},
+
+		// "+" alone or with too few digits — below E.164 minimum.
+		{"+", subjectid.ErrFormatPhoneNumber},
+		{"+1", subjectid.ErrFormatPhoneNumber},
+		{"+12", subjectid.ErrFormatPhoneNumber},
+		{"+123", subjectid.ErrFormatPhoneNumber},
+
+		// Above E.164 maximum of 15 digits.
+		{"+1234567890123456", subjectid.ErrFormatPhoneNumber},
+
+		// Separators not in the basic E.164 shell.
+		{"+1 206 555 0100", subjectid.ErrFormatPhoneNumber}, // spaces
+		{"+1-206-555-0100", subjectid.ErrFormatPhoneNumber}, // hyphens
+		{"+1(206)5550100", subjectid.ErrFormatPhoneNumber},  // parens
+		{"+12.06.555.0100", subjectid.ErrFormatPhoneNumber}, // dots
+		{"+1\t2065550100", subjectid.ErrFormatPhoneNumber},  // tab
+
+		// Doubled or interior "+".
+		{"++12065550100", subjectid.ErrFormatPhoneNumber},
+		{"+1206+5550100", subjectid.ErrFormatPhoneNumber},
+
+		// Non-digit characters anywhere.
+		{"+abc1234", subjectid.ErrFormatPhoneNumber},
+		{"+1206555X100", subjectid.ErrFormatPhoneNumber},
+		{"+1206555100x", subjectid.ErrFormatPhoneNumber},
+
+		// Leading whitespace.
+		{" +12065550100", subjectid.ErrFormatPhoneNumber},
+
+		// Non-ASCII digits (Arabic-Indic 4) — RFC 9493 §3.2.5
+		// is ASCII per E.164.
+		{"+۱۲۳۴", subjectid.ErrFormatPhoneNumber},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			err := subjectid.PhoneNumberID{PhoneNumber: tc.input}.Validate()
 			if err == nil {
-				t.Fatalf("Validate(%q): got nil, want *ValidationError", tc.input)
+				t.Fatalf("Validate(%q): got nil, want non-nil error", tc.input)
 			}
-			var ve *subjectid.ValidationError
-			if !errors.As(err, &ve) {
-				t.Fatalf("err type = %T, want *ValidationError", err)
-			}
-			if ve.Rule != tc.rule {
-				t.Errorf("Rule = %q, want %q", ve.Rule, tc.rule)
-			}
-			if ve.Format != "phone_number" {
-				t.Errorf("Format = %q, want %q", ve.Format, "phone_number")
+			if !errors.Is(err, tc.want) {
+				t.Errorf("errors.Is(err, %v) = false, want true (err = %v)", tc.want, err)
 			}
 		})
 	}

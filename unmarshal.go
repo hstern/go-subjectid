@@ -34,9 +34,9 @@ type envelope struct {
 // Errors are reserved for two conditions only:
 //
 //   - The bytes are not valid JSON, or the "format" member is
-//     not present or not a string. In both cases the returned
-//     error is a [*ValidationError] naming the failing rule
-//     so callers can branch programmatically.
+//     not present or not a string. In the first case the error
+//     wraps [ErrJSON]; in the second it is [ErrRequired] with
+//     "format" in its Fields. Both match [Err] under [errors.Is].
 //   - A registered constructor's UnmarshalJSON returns an
 //     error. The error is returned verbatim.
 //
@@ -47,18 +47,10 @@ type envelope struct {
 func Parse(raw json.RawMessage) (SubjectIdentifier, error) {
 	var env envelope
 	if err := json.Unmarshal(raw, &env); err != nil {
-		return nil, &ValidationError{
-			Rule:   "json",
-			Format: "",
-			Reason: fmt.Sprintf("subject identifier is not a JSON object: %v", err),
-		}
+		return nil, fmt.Errorf("%w: %v", ErrJSON, err)
 	}
 	if env.Format == "" {
-		return nil, &ValidationError{
-			Rule:   "required",
-			Format: "",
-			Reason: `"format" member is required and must be a non-empty string`,
-		}
+		return nil, MissingFields("format")
 	}
 	if ctor := lookup(env.Format); ctor != nil {
 		target := ctor()

@@ -1,0 +1,10 @@
+; RFC 7519 §4.1.2 "sub" Claim.
+;
+; RFC 7519 defines sub as a StringOrURI like iss, but the
+; iss_sub_test.go accept set includes "subject with space",
+; "abc-XYZ_123.tilde~", and pure digit strings — i.e. sub is treated
+; as an opaque issuer-chosen identifier that the library does not
+; structurally validate. The only rule is non-empty (enforced by the
+; caller before this regex is consulted) and printable.
+
+sub            = 1*( %x20-7E )    ; any printable ASCII or space

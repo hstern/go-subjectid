@@ -25,8 +25,12 @@ The library handles:
   `opaque`, `phone_number`, `did`, `uri`, `aliases`.
 - **JSON codec** — discriminator-driven `Unmarshal` dispatch plus
   spec-order, byte-stable `Marshal` output.
-- **Validation** — opt-in `Validate()` per format, with structured
-  `*ValidationError` results naming the failing rule.
+- **Validation** — opt-in `Validate()` per format, returning sentinel
+  errors (`ErrFormatXxx`, `ErrRequired`, `ErrOpaqueEmpty`,
+  `ErrNestedAliases`, …). Callers branch with `errors.Is`; every
+  sentinel also matches the umbrella `subjectid.Err`. `ErrRequired`
+  is a struct type — use `errors.As` to recover the missing field
+  names.
 - **Forward compatibility** — unknown formats parse into an
   `UnknownFormat` carrier that preserves the wire bytes verbatim, so
   the identifier round-trips even when the library can't fully parse
@@ -41,6 +45,27 @@ go get github.com/hstern/go-subjectid@latest
 ```
 
 Requires Go 1.26 or newer.
+
+## Build prerequisites (contributors only)
+
+Per-format validation regexes are generated from the relevant RFCs'
+ABNF grammars in `grammar/<rfc>/*.abnf` and committed to the tree as
+`*.rex` files alongside, so the runtime tree depends only on the Go
+standard library. Regenerating those files needs the
+[pandatix/go-abnf](https://github.com/pandatix/go-abnf) `pap` CLI.
+
+`go install` does not work because the `cmd/pap` go.mod uses a local
+`replace` directive; build from source:
+
+```sh
+git clone --depth=1 https://github.com/pandatix/go-abnf.git /tmp/go-abnf
+go build -C /tmp/go-abnf/cmd/pap -o "$(go env GOPATH)/bin/pap"
+```
+
+Then regenerate with `make generate` (or `make -B generate` to force a
+full rebuild). CI runs the same incantation in the `pap` job below and
+fails the build on uncommitted drift, so always commit the `.rex`
+files alongside any `.abnf` change.
 
 ## Quickstart
 
