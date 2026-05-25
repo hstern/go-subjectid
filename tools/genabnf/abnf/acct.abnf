@@ -1,0 +1,15 @@
+; RFC 7565 Section 3 -- acct URI.
+;
+; Character classes (unreserved, pct-encoded, sub-delims) are
+; pulled from RFC 3986 Section 2. ALPHA and DIGIT are RFC 5234
+; core rules provided by the ABNF parser. HEXDIG is redefined
+; locally as "hex" because RFC 5234's core HEXDIG is uppercase
+; only, while RFC 3986 percent-encoding allows both cases.
+
+acct-uri    = "acct" ":" userpart "@" host
+userpart    = 1*( unreserved / pct-encoded / sub-delims )
+host        = 1*( unreserved / pct-encoded / sub-delims )
+unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
+pct-encoded = "%" hex hex
+sub-delims  = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+hex         = DIGIT / "A" / "B" / "C" / "D" / "E" / "F" / "a" / "b" / "c" / "d" / "e" / "f"

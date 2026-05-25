@@ -3,8 +3,6 @@
 
 package subjectid
 
-import "regexp"
-
 // PhoneNumberID identifies a subject by an ITU-T E.164 phone
 // number, as defined in RFC 9493 §3.2.5.
 //
@@ -24,15 +22,11 @@ type PhoneNumberID struct {
 // Format returns "phone_number". See [SubjectIdentifier.Format].
 func (PhoneNumberID) Format() string { return "phone_number" }
 
-// phoneE164Re matches the basic E.164 shell the library checks:
-// a literal "+", then 4 to 15 ASCII digits. ITU-T E.164 allows up
-// to 15 digits total in the international number (country code +
-// subscriber number); the 4-digit lower bound is the smallest
-// realistic country-code-plus-subscriber pair.
-var phoneE164Re = regexp.MustCompile(`^\+\d{4,15}$`)
-
 // Validate checks the PhoneNumber member against the basic E.164
-// shell: a leading "+" followed by 4 to 15 ASCII digits.
+// shell: a leading "+" followed by 4 to 15 ASCII digits. The
+// match uses [phoneE164Re], a regex generated from
+// tools/genabnf/abnf/phone.abnf (`phone = "+" 4*15DIGIT`) so the
+// validator tracks the ABNF rather than a hand-paraphrase.
 //
 // What this deliberately does NOT check:
 //

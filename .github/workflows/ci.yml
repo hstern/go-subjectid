@@ -58,3 +58,18 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.1
+
+  # check-gen re-runs the ABNF -> regex generator and fails if
+  # grammars_gen.go differs from what the abnf/ inputs produce.
+  # Same shape as buf's "generated code is in sync" gate.
+  check-gen:
+    name: check-gen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: false
+      - name: make check-gen
+        run: make check-gen
