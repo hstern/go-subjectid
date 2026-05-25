@@ -5,6 +5,7 @@ package subjectid
 
 import (
 	"regexp"
+	"sync/atomic"
 )
 
 // e164Shape is the RFC 9493 §3.2.5 wire shape: a leading "+" followed
@@ -12,6 +13,39 @@ import (
 // lenient about spaces, dashes, parens, and dots, so we re-check the
 // raw input against the spec before delegating to the parser.
 var e164Shape = regexp.MustCompile(`^\+\d{4,15}$`)
+
+// phoneNumberValidator holds the optional custom validator installed
+// via [WithPhoneNumberValidator]. nil means use the built-in E.164
+// shell regex.
+var phoneNumberValidator atomic.Pointer[func(PhoneNumberID) error]
+
+// WithPhoneNumberValidator installs a custom syntax check for the
+// phone_number format and returns the previously-installed
+// validator (or nil).
+//
+// When set, the custom validator REPLACES the built-in E.164
+// shell regex check (which only enforces "+" + 4-15 ASCII digits);
+// the RFC 9493 §3 required-non-empty rule still runs first, so
+// the custom validator may assume p.PhoneNumber is non-empty.
+// Pass nil to restore the built-in. See [WithEmailValidator] for
+// the contract details.
+//
+// Typical use: wire in libphonenumber-grade validation
+// (github.com/nyaruka/phonenumbers and friends) for callers who
+// need real per-country plan / portability checks rather than the
+// shape-only default.
+func WithPhoneNumberValidator(fn func(PhoneNumberID) error) func(PhoneNumberID) error {
+	var prev func(PhoneNumberID) error
+	if p := phoneNumberValidator.Load(); p != nil {
+		prev = *p
+	}
+	if fn == nil {
+		phoneNumberValidator.Store(nil)
+	} else {
+		phoneNumberValidator.Store(&fn)
+	}
+	return prev
+}
 
 // PhoneNumberID identifies a subject by an ITU-T E.164 phone
 // number, as defined in RFC 9493 §3.2.5.
@@ -52,6 +86,9 @@ func (PhoneNumberID) Format() string { return "phone_number" }
 func (p PhoneNumberID) Validate() error {
 	if p.PhoneNumber == "" {
 		return MissingFields("phone_number")
+	}
+	if v := phoneNumberValidator.Load(); v != nil {
+		return (*v)(p)
 	}
 	if !e164Shape.MatchString(p.PhoneNumber) {
 		return ErrFormatPhoneNumber

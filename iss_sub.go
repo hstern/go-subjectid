@@ -3,7 +3,10 @@
 
 package subjectid
 
-import _ "embed"
+import (
+	_ "embed"
+	"sync/atomic"
+)
 
 //go:embed grammar/rfc7519/iss.rex
 var issRegexString string
@@ -15,6 +18,39 @@ var (
 	issRegex = mustCompileAnchored(issRegexString)
 	subRegex = mustCompileAnchored(subRegexString)
 )
+
+// issSubValidator holds the optional custom validator installed via
+// [WithIssSubValidator]. nil means use the built-in iss/sub regex
+// pair.
+var issSubValidator atomic.Pointer[func(IssSubID) error]
+
+// WithIssSubValidator installs a custom syntax check for the
+// iss_sub format and returns the previously-installed validator
+// (or nil).
+//
+// When set, the custom validator REPLACES the built-in
+// per-member regex checks (iss as RFC 3986 absolute-URI, sub as
+// the printable identifier grammar); the RFC 9493 §3
+// required-non-empty rule still runs first on BOTH members, so
+// the custom validator may assume i.Iss and i.Sub are non-empty.
+// Pass nil to restore the built-in. See [WithEmailValidator] for
+// the contract details.
+//
+// Typical use: enforce a trust-list of acceptable iss URIs,
+// validate sub against an internal directory, or apply
+// case-folding before regex matching.
+func WithIssSubValidator(fn func(IssSubID) error) func(IssSubID) error {
+	var prev func(IssSubID) error
+	if p := issSubValidator.Load(); p != nil {
+		prev = *p
+	}
+	if fn == nil {
+		issSubValidator.Store(nil)
+	} else {
+		issSubValidator.Store(&fn)
+	}
+	return prev
+}
 
 // IssSubID identifies a subject by a JWT-style (issuer, subject)
 // pair, as defined in RFC 9493 §3.2.3. The pair is also the iss
@@ -55,6 +91,9 @@ func (i IssSubID) Validate() error {
 	}
 	if len(missing) > 0 {
 		return MissingFields(missing...)
+	}
+	if v := issSubValidator.Load(); v != nil {
+		return (*v)(i)
 	}
 	if !issRegex.MatchString(i.Iss) || !subRegex.MatchString(i.Sub) {
 		return ErrFormatIssSub

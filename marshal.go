@@ -17,6 +17,9 @@ import (
 // order RFC 9493 §3.2.1 defines them. Output is canonical
 // (no whitespace) and byte-stable for a given input.
 func (a AccountID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(a); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		URI    string `json:"uri"`
@@ -26,6 +29,9 @@ func (a AccountID) MarshalJSON() ([]byte, error) {
 // MarshalJSON implements [json.Marshaler] for EmailID. See
 // RFC 9493 §3.2.2 for the wire shape.
 func (e EmailID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(e); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		Email  string `json:"email"`
@@ -36,6 +42,9 @@ func (e EmailID) MarshalJSON() ([]byte, error) {
 // RFC 9493 §3.2.3 — iss precedes sub, matching the JWT claim
 // order.
 func (i IssSubID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(i); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		Iss    string `json:"iss"`
@@ -46,6 +55,9 @@ func (i IssSubID) MarshalJSON() ([]byte, error) {
 // MarshalJSON implements [json.Marshaler] for OpaqueID. See
 // RFC 9493 §3.2.4 for the wire shape.
 func (o OpaqueID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(o); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		ID     string `json:"id"`
@@ -55,6 +67,9 @@ func (o OpaqueID) MarshalJSON() ([]byte, error) {
 // MarshalJSON implements [json.Marshaler] for PhoneNumberID. See
 // RFC 9493 §3.2.5 for the wire shape.
 func (p PhoneNumberID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(p); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format      string `json:"format"`
 		PhoneNumber string `json:"phone_number"`
@@ -64,6 +79,9 @@ func (p PhoneNumberID) MarshalJSON() ([]byte, error) {
 // MarshalJSON implements [json.Marshaler] for DIDID. See
 // RFC 9493 §3.2.6 for the wire shape.
 func (d DIDID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(d); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		URL    string `json:"url"`
@@ -73,6 +91,9 @@ func (d DIDID) MarshalJSON() ([]byte, error) {
 // MarshalJSON implements [json.Marshaler] for URIID. See
 // RFC 9493 §3.2.7 for the wire shape.
 func (u URIID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(u); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format string `json:"format"`
 		URI    string `json:"uri"`
@@ -85,6 +106,9 @@ func (u URIID) MarshalJSON() ([]byte, error) {
 // slice round-trips with each element in its own format's
 // spec-order shape.
 func (a AliasesID) MarshalJSON() ([]byte, error) {
+	if err := maybeValidate(a); err != nil {
+		return nil, err
+	}
 	return json.Marshal(struct {
 		Format      string              `json:"format"`
 		Identifiers []SubjectIdentifier `json:"identifiers"`
