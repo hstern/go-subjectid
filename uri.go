@@ -3,6 +3,13 @@
 
 package subjectid
 
+import _ "embed"
+
+//go:embed grammar/rfc3986/absolute-uri.rex
+var absoluteURIRegexString string
+
+var absoluteURIRegex = mustCompileAnchored(absoluteURIRegexString)
+
 // URIID identifies a subject by any RFC 3986 URI, as defined in
 // RFC 9493 §3.2.7. It is the "use when nothing more specific
 // applies" fallback within the built-in set.
@@ -24,12 +31,20 @@ type URIID struct {
 // Format returns "uri". See [SubjectIdentifier.Format].
 func (URIID) Format() string { return "uri" }
 
-// Validate is a no-op until the RFC 3986 absolute-URI rule from
-// RFC 9493 §3.2.7 lands in a later commit. The method exists now
-// to satisfy [SubjectIdentifier].
-func (URIID) Validate() error { return nil }
+// Validate enforces the RFC 9493 §3.2.7 wire shape: the "uri"
+// member must be non-empty and must match the RFC 3986 §4.3
+// absolute-URI grammar in its entirety.
+func (u URIID) Validate() error {
+	if u.URI == "" {
+		return MissingFields("uri")
+	}
+	if !absoluteURIRegex.MatchString(u.URI) {
+		return ErrFormatURI
+	}
+	return nil
+}
 
 func (URIID) sealed() {}
 
 // Compile-time assertion that URIID satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*URIID)(nil)
+var _ SubjectIdentifier = URIID{}

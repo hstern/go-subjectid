@@ -14,13 +14,11 @@
 //   - An UnknownFormat carrier that preserves the wire bytes of
 //     formats the library does not natively recognize, so forward-
 //     compatibility round-trips correctly.
-//   - An opt-in [SubjectIdentifier.Validate] method per format and
-//     a structured [ValidationError] for callers that want to
-//     branch on the rule that failed.
-//
-// JSON codec and the per-format Validate rules are implemented in
-// subsequent commits; this file fixes the interface contract those
-// build on.
+//   - An opt-in [SubjectIdentifier.Validate] method per format,
+//     returning the package's sentinel errors (per-format
+//     [FormatErr]-built sentinels, [ErrRequired] for missing
+//     members, etc.). Callers branch with [errors.Is]; every
+//     sentinel also matches the umbrella [Err].
 package subjectid
 
 // SpecVersion identifies the RFC this package implements. RFCs have
@@ -47,12 +45,13 @@ type SubjectIdentifier interface {
 
 	// Validate reports whether the identifier satisfies the
 	// RFC 9493 well-formedness rules for its format. A nil return
-	// means valid; a non-nil return is a [*ValidationError]
-	// naming the rule that failed.
-	//
-	// Validate is implemented on each per-format type in a later
-	// commit; the contract is fixed here so callers can program
-	// against the interface from day one.
+	// means valid; a non-nil return is one of the package's
+	// sentinel errors — the per-format [FormatErr]-built sentinel
+	// (e.g. [ErrFormatPhoneNumber]), [ErrRequired] (recoverable
+	// via [errors.As] to learn which field was missing), or a
+	// format-specific sentinel like [ErrOpaqueEmpty] or
+	// [ErrNestedAliases]. Every return value matches the umbrella
+	// [Err] under [errors.Is].
 	Validate() error
 
 	// sealed is the unexported marker that confines

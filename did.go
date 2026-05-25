@@ -3,6 +3,13 @@
 
 package subjectid
 
+import _ "embed"
+
+//go:embed grammar/w3c-did-core/did-url.rex
+var didURLRegexString string
+
+var didURLRegex = mustCompileAnchored(didURLRegexString)
+
 // DIDID identifies a subject by a W3C Decentralized Identifier
 // (DID) URL, as defined in RFC 9493 §3.2.6.
 //
@@ -25,12 +32,21 @@ type DIDID struct {
 // Format returns "did". See [SubjectIdentifier.Format].
 func (DIDID) Format() string { return "did" }
 
-// Validate is a no-op until the DID URL shell validation rule
-// from RFC 9493 §3.2.6 lands in a later commit. The method
-// exists now to satisfy [SubjectIdentifier].
-func (DIDID) Validate() error { return nil }
+// Validate enforces the RFC 9493 §3.2.6 wire shape: the "url"
+// member must be non-empty and must match the W3C DID Core ABNF
+// from did-url.abnf in its entirety. Per-method validation (did:web,
+// did:key, etc.) is out of scope.
+func (d DIDID) Validate() error {
+	if d.URL == "" {
+		return MissingFields("url")
+	}
+	if !didURLRegex.MatchString(d.URL) {
+		return ErrFormatDID
+	}
+	return nil
+}
 
 func (DIDID) sealed() {}
 
 // Compile-time assertion that DIDID satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*DIDID)(nil)
+var _ SubjectIdentifier = DIDID{}

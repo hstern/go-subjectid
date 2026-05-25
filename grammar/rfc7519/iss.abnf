@@ -1,0 +1,35 @@
+; RFC 7519 §4.1.1 "iss" Claim.
+;
+; RFC 7519 defines iss as a StringOrURI: a JSON string value that
+; either contains no ":" or, if it does, is an RFC 3986 URI. The
+; library tightens to absolute-URI per RFC 9493's design table
+; (iss_sub_test.go rejects bare strings, relative refs, network-path
+; refs, and bad schemes).
+
+; RFC 3986 §4.3 — absolute-URI permits scheme + hier-part + ?query
+; but NOT fragment.
+iss            = scheme ":" hier-part [ "?" query ]
+
+; RFC 3986 §3.1 scheme: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+scheme         = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+
+; RFC 3986 §3 hier-part. We don't validate authority/path subforms
+; in detail — the v0.1 contract is "scheme + plausible body, no
+; whitespace, no fragment".
+hier-part      = "//" body
+               / body
+body           = *uchar
+uchar          = unreserved / pct-encoded / sub-delims
+               / ":" / "@" / "/" / "[" / "]"
+query          = *( uchar / "?" )
+
+; RFC 3986 §2.2–2.3 character sets
+unreserved     = ALPHA / DIGIT / "-" / "." / "_" / "~"
+pct-encoded    = "%" hexdig-ci hexdig-ci
+sub-delims     = "!" / "$" / "&" / "'" / "(" / ")"
+               / "*" / "+" / "," / ";" / "="
+
+; Case-insensitive hex (pap's built-in HEXDIG is uppercase-only).
+hexdig-ci      = DIGIT
+               / "A" / "B" / "C" / "D" / "E" / "F"
+               / "a" / "b" / "c" / "d" / "e" / "f"

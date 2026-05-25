@@ -3,6 +3,10 @@
 
 package subjectid
 
+import (
+	"errors"
+)
+
 // AliasesID is a composite identifier representing the same
 // subject under multiple formats, as defined in RFC 9493 §3.2.8.
 //
@@ -34,13 +38,29 @@ type AliasesID struct {
 // Format returns "aliases". See [SubjectIdentifier.Format].
 func (AliasesID) Format() string { return "aliases" }
 
-// Validate is a no-op until the non-empty-identifiers and
-// no-nested-aliases rules from RFC 9493 §3.2.8 land in a later
-// commit. The method exists now to satisfy
-// [SubjectIdentifier].
-func (AliasesID) Validate() error { return nil }
+// Validate enforces the two RFC 9493 §3.2.8 rules on aliases:
+// the identifiers array must be non-empty, and no element may
+// itself be an aliases identifier (no nesting). Inner errors from
+// per-element Validate calls are joined; callers branch via
+// [errors.Is] against the package sentinels.
+func (a AliasesID) Validate() error {
+	if len(a.Identifiers) == 0 {
+		return MissingFields("identifiers")
+	}
+	errs := make([]error, 0, len(a.Identifiers))
+	for _, id := range a.Identifiers {
+		if _, ok := id.(AliasesID); ok {
+			errs = append(errs, ErrNestedAliases)
+			continue
+		}
+		if err := id.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
 
 func (AliasesID) sealed() {}
 
 // Compile-time assertion that AliasesID satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*AliasesID)(nil)
+var _ SubjectIdentifier = AliasesID{}

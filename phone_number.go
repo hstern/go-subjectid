@@ -3,17 +3,37 @@
 
 package subjectid
 
-import "regexp"
+import (
+	"regexp"
+)
+
+// e164Shape is the RFC 9493 §3.2.5 wire shape: a leading "+" followed
+// by 4 to 15 ASCII digits, with no separators. phonenumbers.Parse is
+// lenient about spaces, dashes, parens, and dots, so we re-check the
+// raw input against the spec before delegating to the parser.
+var e164Shape = regexp.MustCompile(`^\+\d{4,15}$`)
 
 // PhoneNumberID identifies a subject by an ITU-T E.164 phone
 // number, as defined in RFC 9493 §3.2.5.
 //
-// Wire shape:
+// The Phone Number Identifier Format identifies a subject using a
+// telephone number.  Subject Identifiers in this format MUST contain a
+// "phone_number" member whose value is a string containing the full
+// telephone number of the subject, including an international dialing
+// prefix, formatted according to E.164 [E164].  The "phone_number"
+// member is REQUIRED and MUST NOT be null or empty.  The Phone Number
+// Identifier Format is identified by the name "phone_number".
+//
+// Below is a non-normative example Subject Identifier in the Phone
+// Number Identifier Format:
 //
 //	{
-//	  "format":       "phone_number",
+//	  "format": "phone_number",
 //	  "phone_number": "+12065550100"
 //	}
+//
+// Figure 8: Example: Subject Identifier in the Phone Number
+// Identifier Format
 type PhoneNumberID struct {
 	// PhoneNumber is the E.164 number. It is the value of the
 	// JSON "phone_number" member: a leading "+" followed by
@@ -24,49 +44,17 @@ type PhoneNumberID struct {
 // Format returns "phone_number". See [SubjectIdentifier.Format].
 func (PhoneNumberID) Format() string { return "phone_number" }
 
-// phoneE164BasicRe matches the basic E.164 international form:
-// a leading "+", then 4 to 15 ASCII digits, no separators.
-// Encoded as a literal regex of the simplified spec grammar
-//
-//	phone = "+" 4*15DIGIT
-//
-// Full country-prefix validity (assigned country codes,
-// per-country length rules) is intentionally not enforced here;
-// that lands in a follow-up PR backed by nyaruka/phonenumbers
-// (Google libphonenumber port).
-var phoneE164BasicRe = regexp.MustCompile(`^\+\d{4,15}$`)
-
-// Validate checks the PhoneNumber member against the basic E.164
-// shell: a leading "+" followed by 4 to 15 ASCII digits.
-//
-// What this deliberately does NOT check (pending the follow-up
-// nyaruka/phonenumbers integration):
-//
-//   - Country-prefix validity (which 1- to 3-digit prefixes are
-//     assigned per the ITU-T E.164 country-code numbering plan).
-//   - Per-country subscriber-number length rules.
-//   - Formatting / canonicalization.
-//
-// What this does enforce:
-//
-//   - Non-empty.
-//   - Leading "+".
-//   - ASCII digits only — no spaces, dashes, parens, or dots.
-//   - Length 4 to 15 digits (the E.164 lower and upper bounds).
+// Validate enforces the RFC 9493 §3.2.5 wire shape: "phone_number"
+// must be a non-empty string matching the basic E.164 shell — "+"
+// followed by 4 to 15 ASCII digits with no separators. Returns
+// [MissingFields]("phone_number") for the empty value and
+// [ErrFormatPhoneNumber] for shape violations.
 func (p PhoneNumberID) Validate() error {
 	if p.PhoneNumber == "" {
-		return &ValidationError{
-			Rule:   "required",
-			Format: "phone_number",
-			Reason: `"phone_number" member must be a non-empty E.164 number`,
-		}
+		return MissingFields("phone_number")
 	}
-	if !phoneE164BasicRe.MatchString(p.PhoneNumber) {
-		return &ValidationError{
-			Rule:   "format:phone_number",
-			Format: "phone_number",
-			Reason: `value must match the E.164 shell "+<4 to 15 ASCII digits>" with no separators`,
-		}
+	if !e164Shape.MatchString(p.PhoneNumber) {
+		return ErrFormatPhoneNumber
 	}
 	return nil
 }
@@ -74,4 +62,4 @@ func (p PhoneNumberID) Validate() error {
 func (PhoneNumberID) sealed() {}
 
 // Compile-time assertion that PhoneNumberID satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*PhoneNumberID)(nil)
+var _ SubjectIdentifier = PhoneNumberID{}

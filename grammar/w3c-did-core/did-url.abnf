@@ -1,0 +1,32 @@
+; W3C DID Core (https://www.w3.org/TR/did-core/) §3.1 DID URL grammar,
+; with the RFC 3986 productions it depends on.
+
+; DID Core §3.1
+did-url            = did path-abempty [ "?" query ] [ "#" fragment ]
+did                = "did:" method-name ":" method-specific-id
+method-name        = 1*method-char
+method-char        = %x61-7A / DIGIT
+method-specific-id = *( *idchar ":" ) 1*idchar
+idchar             = ALPHA / DIGIT / "." / "-" / "_" / pct-encoded
+pct-encoded        = "%" hexdig-ci hexdig-ci
+
+; RFC 3986 §3.3 (path-abempty, segment, pchar)
+path-abempty       = *( "/" segment )
+segment            = *pchar
+pchar              = unreserved / pct-encoded / sub-delims / ":" / "@"
+
+; RFC 3986 §3.4–3.5 (query, fragment)
+query              = *( pchar / "/" / "?" )
+fragment           = *( pchar / "/" / "?" )
+
+; RFC 3986 §2.2–2.3 (character sets reachable from did-url)
+unreserved         = ALPHA / DIGIT / "-" / "." / "_" / "~"
+sub-delims         = "!" / "$" / "&" / "'" / "(" / ")"
+                   / "*" / "+" / "," / ";" / "="
+
+; Case-insensitive hex digit (pap's built-in HEXDIG is uppercase-only
+; per literal RFC 5234, but URI hex is case-insensitive per RFC 3986
+; §6.2.2.1).
+hexdig-ci          = DIGIT
+                   / "A" / "B" / "C" / "D" / "E" / "F"
+                   / "a" / "b" / "c" / "d" / "e" / "f"
