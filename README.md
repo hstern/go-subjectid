@@ -69,7 +69,160 @@ files alongside any `.abnf` change.
 
 ## Quickstart
 
-_To be filled in once Phase 3 (codec) lands._
+Decode a Subject Identifier from JSON, validate it, and act on the
+result:
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/hstern/go-subjectid"
+)
+
+func main() {
+	wire := []byte(`{"format":"email","email":"user@example.com"}`)
+
+	id, err := subjectid.Parse(json.RawMessage(wire))
+	if err != nil {
+		panic(err)
+	}
+	if err := id.Validate(); err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s identifier: %#v\n", id.Format(), id)
+}
+```
+
+Build a Subject Identifier value in Go and emit canonical wire
+bytes:
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/hstern/go-subjectid"
+)
+
+func main() {
+	id := subjectid.IssSubID{
+		Iss: "https://issuer.example.com/",
+		Sub: "145234573",
+	}
+	if err := id.Validate(); err != nil {
+		panic(err)
+	}
+	out, err := json.Marshal(id)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(out))
+	// {"format":"iss_sub","iss":"https://issuer.example.com/","sub":"145234573"}
+}
+```
+
+The codec is byte-stable: `format` is emitted first, then the
+format-specific members in the order RFC 9493 §3 defines them.
+Round-tripping a spec-example payload produces output identical to
+the input.
+
+## Per-format usage
+
+Each format in the IANA "Security Event Identifier Formats"
+registry has its own typed Go struct. All eight implement the
+sealed [`SubjectIdentifier`][godoc] interface:
+
+| Format | Go type | Wire member(s) | Spec section |
+|---|---|---|---|
+| `account` | `AccountID` | `uri` (acct: URI per RFC 7565) | §3.2.1 |
+| `email` | `EmailID` | `email` (addr-spec per RFC 5322 §3.4.1) | §3.2.2 |
+| `iss_sub` | `IssSubID` | `iss` (URI), `sub` | §3.2.3 |
+| `opaque` | `OpaqueID` | `id` (non-empty string) | §3.2.4 |
+| `phone_number` | `PhoneNumberID` | `phone_number` (E.164) | §3.2.5 |
+| `did` | `DIDID` | `url` (W3C DID Core URL) | §3.2.6 |
+| `uri` | `URIID` | `uri` (RFC 3986 absolute-URI) | §3.2.7 |
+| `aliases` | `AliasesID` | `identifiers` (slice; no nested aliases) | §3.2.8 |
+
+[godoc]: https://pkg.go.dev/github.com/hstern/go-subjectid
+
+Use the typed constructor directly when building a value; use
+[`Parse`][godoc] (or `json.Unmarshal` into a known type) when
+decoding from the wire. See the godoc Examples on each format
+type for runnable usage.
+
+### Extension formats
+
+For format names outside the IANA built-in set, define a Go type
+embedding `subjectid.Seal` and register a constructor at consumer
+init time:
+
+```go
+type OrgTenantID struct {
+	subjectid.Seal
+	Tenant string
+}
+
+func (OrgTenantID) Format() string                   { return "org.example.tenant" }
+func (OrgTenantID) Validate() error                  { /* … */ return nil }
+func (o OrgTenantID) MarshalJSON() ([]byte, error)   { /* spec-order */ }
+func (o *OrgTenantID) UnmarshalJSON(b []byte) error  { /* … */ }
+
+func init() {
+	_ = subjectid.RegisterFormat("org.example.tenant",
+		func() subjectid.SubjectIdentifier { return &OrgTenantID{} })
+}
+```
+
+Re-registering an IANA built-in name returns an error wrapping
+`subjectid.ErrFormatReserved`. Unknown formats encountered on
+unmarshal — neither built-in nor registered — parse into an
+`UnknownFormat` carrier that preserves the wire bytes verbatim,
+so payloads always round-trip even when the library can't
+recognize every entry.
+
+## How this fits with SET / SSF / CAEP / RISC
+
+Subject Identifiers are a building block, not a complete protocol.
+The RFC 9493 wire shape is referenced by, but does not stand
+alone in:
+
+- **RFC 8417 — Security Event Token (SET)**. JWT-shaped events
+  whose `events` claim values carry a `subject` member that is an
+  RFC 9493 Subject Identifier. `go-subjectid` is the wire-layer
+  dependency for any Go SET library; the SET envelope itself
+  (JWT signing, audience routing, `txn` correlation) is the
+  consumer's responsibility.
+- **OpenID Shared Signals Framework (SSF)**. The transmitter
+  + receiver protocols for streaming SETs. Stream Configuration
+  uses `subject` in the same shape; SSF receivers consuming
+  CAEP / RISC streams need a Subject Identifier parser at the
+  edge.
+- **OpenID Continuous Access Evaluation Protocol (CAEP)** and the
+  **RISC** event family. CAEP and RISC define event schemas that
+  embed a `subject` member; `go-subjectid` decodes that member.
+
+A future sibling library (`go-ssf`-shaped — name TBD) will depend
+on this one. Until then, consumers wiring SET / SSF stacks in Go
+can use this library directly at the `subject` boundary and
+supply their own JWT and HTTP layers.
+
+## Stability
+
+`v0.x` is pre-release. The public API surface is expected to
+remain stable through `v0.x` minor bumps once `v0.1.0` is tagged,
+but breaking changes may land between minor versions if a
+wire-fidelity issue is found. After `v1.0.0`, Go module SemVer
+applies: breaking changes require a `v2` branch with `/v2`
+import-path suffix per the standard major-version handling.
+
+The library's wire-fidelity claim — every RFC 9493 §3 example
+round-trips byte-stably through the codec — is regression-tested
+in CI via the embedded spec fixtures in `internal/specfixtures/`.
 
 ## Design
 
