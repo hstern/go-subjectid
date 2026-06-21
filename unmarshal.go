@@ -6,6 +6,7 @@ package subjectid
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 // envelope is the wire shape Parse peeks at first to discover
@@ -16,9 +17,43 @@ type envelope struct {
 	Format string `json:"format"`
 }
 
+// deref normalizes a freshly-parsed identifier to its canonical
+// value form. Registry constructors allocate a pointer so the codec
+// can populate it via UnmarshalJSON; Parse returns the dereferenced
+// value so the dynamic type a caller reads back from Parse matches
+// the value literal they would write by hand (subjectid.IssSubID,
+// not *subjectid.IssSubID). See [SubjectIdentifier] for the
+// canonical-form contract.
+//
+// Reflection keeps this uniform across the built-in formats and any
+// extension type registered via [RegisterFormat]; the constraint it
+// imposes — extension types must satisfy [SubjectIdentifier] with
+// value receivers, so the dereferenced value still implements the
+// interface — is documented on RegisterFormat. A non-pointer is
+// returned unchanged.
+//
+// An extension type registered with pointer-receiver methods would
+// not satisfy the interface in dereferenced form; rather than panic
+// or drop it, deref returns such a value unchanged. Normalization is
+// thus best-effort, and value-canonical is guaranteed only for the
+// built-ins and conforming extensions.
+func deref(id SubjectIdentifier) SubjectIdentifier {
+	rv := reflect.ValueOf(id)
+	if rv.Kind() != reflect.Pointer {
+		return id
+	}
+	if v, ok := rv.Elem().Interface().(SubjectIdentifier); ok {
+		return v
+	}
+	return id
+}
+
 // Parse decodes a Subject Identifier from raw JSON, dispatching
 // on the value of the "format" member to the appropriate
-// concrete type:
+// concrete type. The returned identifier is always in value form
+// (e.g. [IssSubID], never *IssSubID) — the canonical dynamic form
+// for every value this package produces, matching what a caller
+// constructs as a struct literal. See [SubjectIdentifier].
 //
 //   - For a built-in format (account, email, iss_sub, opaque,
 //     phone_number, did, uri, aliases), the matching per-format
@@ -57,13 +92,13 @@ func Parse(raw json.RawMessage) (SubjectIdentifier, error) {
 		if err := json.Unmarshal(raw, target); err != nil {
 			return nil, err
 		}
-		return target, nil
+		return deref(target), nil
 	}
 	// Unknown format — copy the bytes so the caller cannot mutate
 	// our internal state by holding a reference to raw.
 	bytes := make(json.RawMessage, len(raw))
 	copy(bytes, raw)
-	return &UnknownFormat{
+	return UnknownFormat{
 		FormatName: env.Format,
 		Raw:        bytes,
 	}, nil

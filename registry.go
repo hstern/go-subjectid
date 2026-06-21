@@ -15,6 +15,14 @@ import (
 //
 // Constructors registered for non-built-in formats must return a
 // type that embeds [Seal] so it satisfies the sealed interface.
+//
+// The returned value is conventionally a pointer so the codec can
+// populate it via UnmarshalJSON, but [Parse] normalizes the result
+// to its canonical value form before returning it. The extension
+// type must therefore satisfy [SubjectIdentifier] with value
+// receivers, so the dereferenced value still implements the
+// interface; a type whose methods use pointer receivers would not
+// survive that normalization.
 type Constructor func() SubjectIdentifier
 
 // formatRegistry is the package-global dispatch table. It is

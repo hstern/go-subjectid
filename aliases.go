@@ -49,7 +49,11 @@ func (a AliasesID) Validate() error {
 	}
 	errs := make([]error, 0, len(a.Identifiers))
 	for _, id := range a.Identifiers {
-		if _, ok := id.(AliasesID); ok {
+		// Detect nesting by the format discriminator rather than a
+		// concrete-type assertion: an inner aliases identifier parsed
+		// from the wire and one built as a Go literal must both be
+		// caught regardless of their dynamic pointer/value form.
+		if id.Format() == "aliases" {
 			errs = append(errs, ErrNestedAliases)
 			continue
 		}

@@ -23,7 +23,7 @@ func ExampleParse() {
 		panic(err)
 	}
 
-	email := id.(*subjectid.EmailID)
+	email := id.(subjectid.EmailID)
 	fmt.Println(id.Format(), email.Email)
 	// Output: email user@example.com
 }
@@ -40,7 +40,7 @@ func ExampleParse_unknownFormat() {
 		panic(err)
 	}
 
-	unk := id.(*subjectid.UnknownFormat)
+	unk := id.(subjectid.UnknownFormat)
 	out, _ := json.Marshal(unk)
 	fmt.Println(unk.FormatName)
 	fmt.Println(string(out))
