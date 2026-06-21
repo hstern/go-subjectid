@@ -36,6 +36,14 @@ const SpecVersion = "RFC 9493"
 // later commit) rather than implementing the interface directly:
 // registration feeds the codec dispatch table, whereas a direct
 // implementation would be invisible to it.
+//
+// Canonical dynamic form: every value this package produces is the
+// concrete value type, never a pointer to it. [Parse] returns
+// [IssSubID], not *IssSubID, so the dynamic type read back from
+// Parse is identical to the struct literal a caller writes by hand.
+// Consumers branching with a type switch or assertion should match
+// the value forms (case IssSubID, case AliasesID, …); the pointer
+// forms never occur on a value obtained from this package's API.
 type SubjectIdentifier interface {
 	// Format returns the IANA "format" discriminator for this
 	// identifier — "email", "iss_sub", "aliases", and so on. The

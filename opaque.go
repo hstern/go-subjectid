@@ -36,5 +36,6 @@ func (o OpaqueID) Validate() error {
 
 func (OpaqueID) sealed() {}
 
-// Compile-time assertion that OpaqueID satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*OpaqueID)(nil)
+// Compile-time assertion that OpaqueID satisfies SubjectIdentifier
+// in value form — the canonical dynamic form Parse returns.
+var _ SubjectIdentifier = OpaqueID{}

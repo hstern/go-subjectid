@@ -45,5 +45,6 @@ func (UnknownFormat) Validate() error { return nil }
 
 func (UnknownFormat) sealed() {}
 
-// Compile-time assertion that UnknownFormat satisfies SubjectIdentifier.
-var _ SubjectIdentifier = (*UnknownFormat)(nil)
+// Compile-time assertion that UnknownFormat satisfies SubjectIdentifier
+// in value form — the canonical dynamic form Parse returns.
+var _ SubjectIdentifier = UnknownFormat{}

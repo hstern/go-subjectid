@@ -94,9 +94,9 @@ func TestRegisterFormatExtensionSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	tenant, ok := id.(*orgTenantID)
+	tenant, ok := id.(orgTenantID)
 	if !ok {
-		t.Fatalf("Parse returned %T, want *orgTenantID", id)
+		t.Fatalf("Parse returned %T, want orgTenantID", id)
 	}
 	if got, want := tenant.Tenant, "acme-prod"; got != want {
 		t.Errorf("Tenant = %q, want %q", got, want)

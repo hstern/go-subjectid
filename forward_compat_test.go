@@ -35,9 +35,9 @@ func TestForwardCompatUnknownFormatRoundTrip(t *testing.T) {
 		t.Fatalf("Parse(unknown format): %v", err)
 	}
 
-	unk, ok := id.(*subjectid.UnknownFormat)
+	unk, ok := id.(subjectid.UnknownFormat)
 	if !ok {
-		t.Fatalf("Parse returned %T, want *UnknownFormat", id)
+		t.Fatalf("Parse returned %T, want subjectid.UnknownFormat", id)
 	}
 	if got, want := unk.Format(), "org.example.future"; got != want {
 		t.Errorf("Format() = %q, want %q", got, want)
@@ -78,19 +78,17 @@ func TestForwardCompatUnknownFormatInsideAliases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse(aliases with unknown inner): %v", err)
 	}
-	aliases, ok := id.(*subjectid.AliasesID)
+	aliases, ok := id.(subjectid.AliasesID)
 	if !ok {
-		t.Fatalf("Parse returned %T, want *AliasesID", id)
+		t.Fatalf("Parse returned %T, want subjectid.AliasesID", id)
 	}
 	if got, want := len(aliases.Identifiers), 2; got != want {
 		t.Fatalf("len(Identifiers) = %d, want %d", got, want)
 	}
 	if _, ok := aliases.Identifiers[0].(subjectid.EmailID); !ok {
-		if _, ok := aliases.Identifiers[0].(*subjectid.EmailID); !ok {
-			t.Errorf("Identifiers[0] = %T, want EmailID (value or pointer)", aliases.Identifiers[0])
-		}
+		t.Errorf("Identifiers[0] = %T, want subjectid.EmailID", aliases.Identifiers[0])
 	}
-	if _, ok := aliases.Identifiers[1].(*subjectid.UnknownFormat); !ok {
-		t.Errorf("Identifiers[1] = %T, want *UnknownFormat", aliases.Identifiers[1])
+	if _, ok := aliases.Identifiers[1].(subjectid.UnknownFormat); !ok {
+		t.Errorf("Identifiers[1] = %T, want subjectid.UnknownFormat", aliases.Identifiers[1])
 	}
 }

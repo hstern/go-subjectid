@@ -61,7 +61,7 @@ func TestSpecFixturesRoundTripByteStable(t *testing.T) {
 			if got, want := id.Format(), fx.Format; got != want {
 				t.Errorf("parsed Format() = %q, want %q", got, want)
 			}
-			if _, isUnknown := id.(*subjectid.UnknownFormat); isUnknown {
+			if _, isUnknown := id.(subjectid.UnknownFormat); isUnknown {
 				t.Errorf("parsed into UnknownFormat; built-in dispatch did not fire")
 			}
 			if verr := id.Validate(); verr != nil {

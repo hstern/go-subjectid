@@ -26,9 +26,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "account",
 			raw:  `{"format":"account","uri":"acct:example.user@service.example.com"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				a, ok := got.(*subjectid.AccountID)
+				a, ok := got.(subjectid.AccountID)
 				if !ok {
-					t.Fatalf("got %T, want *AccountID", got)
+					t.Fatalf("got %T, want AccountID", got)
 				}
 				if a.URI != "acct:example.user@service.example.com" {
 					t.Errorf("URI = %q", a.URI)
@@ -39,9 +39,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "email",
 			raw:  `{"format":"email","email":"user@example.com"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				e, ok := got.(*subjectid.EmailID)
+				e, ok := got.(subjectid.EmailID)
 				if !ok {
-					t.Fatalf("got %T, want *EmailID", got)
+					t.Fatalf("got %T, want EmailID", got)
 				}
 				if e.Email != "user@example.com" {
 					t.Errorf("Email = %q", e.Email)
@@ -52,9 +52,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "iss_sub",
 			raw:  `{"format":"iss_sub","iss":"https://issuer.example.com/","sub":"145234573"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				i, ok := got.(*subjectid.IssSubID)
+				i, ok := got.(subjectid.IssSubID)
 				if !ok {
-					t.Fatalf("got %T, want *IssSubID", got)
+					t.Fatalf("got %T, want IssSubID", got)
 				}
 				if i.Iss != "https://issuer.example.com/" || i.Sub != "145234573" {
 					t.Errorf("Iss=%q Sub=%q", i.Iss, i.Sub)
@@ -65,9 +65,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "opaque",
 			raw:  `{"format":"opaque","id":"11112222333344445555"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				o, ok := got.(*subjectid.OpaqueID)
+				o, ok := got.(subjectid.OpaqueID)
 				if !ok {
-					t.Fatalf("got %T, want *OpaqueID", got)
+					t.Fatalf("got %T, want OpaqueID", got)
 				}
 				if o.ID != "11112222333344445555" {
 					t.Errorf("ID = %q", o.ID)
@@ -78,9 +78,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "phone_number",
 			raw:  `{"format":"phone_number","phone_number":"+12065550100"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				p, ok := got.(*subjectid.PhoneNumberID)
+				p, ok := got.(subjectid.PhoneNumberID)
 				if !ok {
-					t.Fatalf("got %T, want *PhoneNumberID", got)
+					t.Fatalf("got %T, want PhoneNumberID", got)
 				}
 				if p.PhoneNumber != "+12065550100" {
 					t.Errorf("PhoneNumber = %q", p.PhoneNumber)
@@ -91,9 +91,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "did",
 			raw:  `{"format":"did","url":"did:example:123456"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				d, ok := got.(*subjectid.DIDID)
+				d, ok := got.(subjectid.DIDID)
 				if !ok {
-					t.Fatalf("got %T, want *DIDID", got)
+					t.Fatalf("got %T, want DIDID", got)
 				}
 				if d.URL != "did:example:123456" {
 					t.Errorf("URL = %q", d.URL)
@@ -104,9 +104,9 @@ func TestParseEachBuiltinFormatDispatchesToCorrectType(t *testing.T) {
 			name: "uri",
 			raw:  `{"format":"uri","uri":"urn:oasis:names:tc:saml:2.0:nameid-format:transient"}`,
 			check: func(t *testing.T, got subjectid.SubjectIdentifier) {
-				u, ok := got.(*subjectid.URIID)
+				u, ok := got.(subjectid.URIID)
 				if !ok {
-					t.Fatalf("got %T, want *URIID", got)
+					t.Fatalf("got %T, want URIID", got)
 				}
 				if u.URI != "urn:oasis:names:tc:saml:2.0:nameid-format:transient" {
 					t.Errorf("URI = %q", u.URI)
@@ -144,18 +144,18 @@ func TestParseAliasesIsRecursiveAndHeterogeneous(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse aliases: err = %v", err)
 	}
-	a, ok := got.(*subjectid.AliasesID)
+	a, ok := got.(subjectid.AliasesID)
 	if !ok {
-		t.Fatalf("got %T, want *AliasesID", got)
+		t.Fatalf("got %T, want AliasesID", got)
 	}
 	if len(a.Identifiers) != 2 {
 		t.Fatalf("len(Identifiers) = %d, want 2", len(a.Identifiers))
 	}
-	if _, ok := a.Identifiers[0].(*subjectid.EmailID); !ok {
-		t.Errorf("Identifiers[0] = %T, want *EmailID", a.Identifiers[0])
+	if _, ok := a.Identifiers[0].(subjectid.EmailID); !ok {
+		t.Errorf("Identifiers[0] = %T, want EmailID", a.Identifiers[0])
 	}
-	if _, ok := a.Identifiers[1].(*subjectid.AccountID); !ok {
-		t.Errorf("Identifiers[1] = %T, want *AccountID", a.Identifiers[1])
+	if _, ok := a.Identifiers[1].(subjectid.AccountID); !ok {
+		t.Errorf("Identifiers[1] = %T, want AccountID", a.Identifiers[1])
 	}
 }
 
@@ -176,10 +176,10 @@ func TestParseAliasesInnerUnknownFormatBecomesUnknownFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse aliases: err = %v", err)
 	}
-	a := got.(*subjectid.AliasesID)
-	u, ok := a.Identifiers[1].(*subjectid.UnknownFormat)
+	a := got.(subjectid.AliasesID)
+	u, ok := a.Identifiers[1].(subjectid.UnknownFormat)
 	if !ok {
-		t.Fatalf("Identifiers[1] = %T, want *UnknownFormat", a.Identifiers[1])
+		t.Fatalf("Identifiers[1] = %T, want UnknownFormat", a.Identifiers[1])
 	}
 	if u.FormatName != "org.example.future" {
 		t.Errorf("FormatName = %q", u.FormatName)
@@ -195,9 +195,9 @@ func TestParseUnknownTopLevelFormatBecomesUnknownFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: err = %v", err)
 	}
-	u, ok := got.(*subjectid.UnknownFormat)
+	u, ok := got.(subjectid.UnknownFormat)
 	if !ok {
-		t.Fatalf("got %T, want *UnknownFormat", got)
+		t.Fatalf("got %T, want UnknownFormat", got)
 	}
 	if u.FormatName != "org.example.future" {
 		t.Errorf("FormatName = %q", u.FormatName)
@@ -213,7 +213,7 @@ func TestParseUnknownFormatRawIsACopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: err = %v", err)
 	}
-	u := got.(*subjectid.UnknownFormat)
+	u := got.(subjectid.UnknownFormat)
 	// Mutate the source; the carrier should keep the original
 	// bytes because Parse copied them.
 	src[0] = '!'
@@ -285,9 +285,9 @@ func TestParseDispatchesExtensionFormatRegisteredViaRegisterFormat(t *testing.T)
 	if err != nil {
 		t.Fatalf("Parse: err = %v", err)
 	}
-	e, ok := got.(*extensionID)
+	e, ok := got.(extensionID)
 	if !ok {
-		t.Fatalf("got %T, want *extensionID", got)
+		t.Fatalf("got %T, want extensionID", got)
 	}
 	if e.Tag != "hello" {
 		t.Errorf("Tag = %q, want %q", e.Tag, "hello")
