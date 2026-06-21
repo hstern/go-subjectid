@@ -5,11 +5,14 @@ A Go library implementing
 
 [rfc9493]: https://www.rfc-editor.org/rfc/rfc9493.html
 
-> **Status: pre-release.** API surface is being shaped against RFC 9493
-> §3 with the goal of byte-stable round-trip on every spec example.
-> First tag will be `v0.1.0`. The module path
-> `github.com/hstern/go-subjectid` is stable from the first commit; do
-> not depend on the repo until `v0.1.0` is tagged.
+> **Status: released, `v0.x`.** Latest tag `v0.2.0`. The API is tagged
+> and usable, achieving byte-stable round-trip on every RFC 9493 §3
+> example. While the library is in the `v0.x` series a minor release
+> may still make breaking changes (per SemVer's `0.x` convention) — see
+> [`CHANGELOG.md`](CHANGELOG.md) before upgrading. The module path
+> `github.com/hstern/go-subjectid` has been stable since the first
+> commit. A `v1.0.0` API-stability commitment will follow once the
+> surface settles.
 
 ## What it is
 
